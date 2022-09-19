@@ -17,116 +17,71 @@ LEFT_SIDE_AXIS = 0
 #####################################
 
 @gin.configurable
-class UR10JoystickActor(object):
+class UR10HumanActor(object):
     """Joystick Controller for UR10."""
 
-    def __init__(self, action_mask=[1, 1, 1, 1, 1, 1], random=False):
+    def __init__(self, action_mask=[1, 1, 1, 1, 1, 1], input_type='joystick'):
         """Init."""
         self.action_mask = action_mask
-        self.random = random
-        self.rnd = rnd
-        self.rnd.seed(0)
-        self.action_period = 10
-        self.action_cnt = self.action_period
-
-        self.human_agent_action = np.array([[0., 0.], [0., 0.]], dtype=np.float32)  # noop
-        self.button = np.array([0], dtype=np.int32)
-        pygame.joystick.init()
-        joysticks = [pygame.joystick.Joystick(x)
-                     for x in range(pygame.joystick.get_count())]
-        if len(joysticks) > 1:
-            raise ValueError("There must be exactly 1 joystick connected.",
-                             "Found ", len(joysticks))
-        elif len(joysticks) == 0:
-            raise ValueError("There is no joystick connected.")
-        elif len(joysticks) == 1:   
-            self.joy = joysticks[0]
-            self.joy.init()
+        self.action_scale = 2.0
+        self.input_type = input_type
+        self.human_agent_action = np.zeros(6)
+        self.button = np.zeros(1)
+        
+        if self.input_type == 'joystick':
+            pygame.joystick.init()
+            joysticks = [pygame.joystick.Joystick(x)
+                        for x in range(pygame.joystick.get_count())]
+            if len(joysticks) > 1:
+                raise ValueError("There must be exactly 1 joystick connected.",
+                                "Found ", len(joysticks))
+            elif len(joysticks) == 0:
+                raise ValueError("There is no joystick connected.")
+            elif len(joysticks) == 1:   
+                self.joy = joysticks[0]
+                self.joy.init()
+        elif self.input_type == 'keyboard':
+            width, height = 640, 480
+            screen = pygame.display.set_mode((width, height))
+            
         pygame.init()
         self.t = None
         
-        
-
-    def _get_human_action(self):
+    def _get_joystick_action(self):
         for event in pygame.event.get():
             # Joystick input
             if event.type == pygame.JOYAXISMOTION:
                 if event.axis == LEFT_SIDE_AXIS:
-                    self.human_agent_action[0, 1] = event.value
+                    self.human_agent_action[1] = event.value
                 elif event.axis == LEFT_UP_AXIS:
-                    self.human_agent_action[0, 0] = -1.0 * event.value
+                    self.human_agent_action[0] = -1.0 * event.value
                 if event.axis == RIGHT_SIDE_AXIS:
-                    self.human_agent_action[1, 1] = event.value
+                    self.human_agent_action[5] = event.value
                 elif event.axis == RIGHT_UP_AXIS:
-                    self.human_agent_action[1, 0] = -1.0 * event.value
+                    self.human_agent_action[2] = -1.0 * event.value
             if event.type == pygame.JOYBUTTONDOWN:
                 self.button[0] = event.button
+                if self.button[0] == 1:
+                    self.human_agent_action[3] = 1
+                elif self.button[0] == 2:
+                    self.human_agent_action[3] = -1
+                if self.button[0] == 0:
+                    self.human_agent_action[4] = 1
+                elif self.button[0] == 3:
+                    self.human_agent_action[4] = -1
             else: # button clear
                 self.button[0] = -1
-                
-        if abs(self.human_agent_action[0, 0]) < 0.01:
-            self.human_agent_action[0, 0] = 0.0
-        if abs(self.human_agent_action[1, 0]) < 0.01:
-            self.human_agent_action[1, 0] = 0.0
-        action = [self.human_agent_action[0][0], 
-                    self.human_agent_action[0][1], 
-                    self.human_agent_action[1][0], 
-                    0, 
-                    0, 
-                    self.human_agent_action[1][1]]
+                self.human_agent_action[3] = self.human_agent_action[4] = 0
+            
+        action = [self.human_agent_action[0] * self.action_mask[0] * self.action_scale, 
+                  self.human_agent_action[1] * self.action_mask[1] * self.action_scale, 
+                  self.human_agent_action[2] * self.action_mask[2] * self.action_scale, 
+                  self.human_agent_action[3] * self.action_mask[3] * self.action_scale,
+                  self.human_agent_action[4] * self.action_mask[4] * self.action_scale, 
+                  self.human_agent_action[5] * self.action_mask[5] * self.action_scale]
         return np.asarray(action)
     
-    def _get_random_action(self):
-        self.action_cnt += 1
-        if self.action_cnt > self.action_period:
-            self.action = [self.rnd.choice([-1, 0, 1])*self.action_mask[0], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[1], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[2], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[3], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[4], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[5]]
-            self.action_cnt = 0
-            self.action_period = rnd.randrange(5,101)
-            
-        return np.asarray(self.action)
-
-    def __call__(self, ob):
-        """Act."""
-        if self.random:
-            action = self._get_random_action()
-        else:
-            action = self._get_human_action()
-        self.t = time.time()
-        # Prevent collision with table
-        if ob[0][2] < 0.025:
-            if action[2] < 0:
-                action[2] = 0
-        return action
-
-    def reset(self):
-        self.human_agent_action[:] = 0.
-
-@gin.configurable
-class UR10KeyboardActor(object):
-    """Joystick Controller for UR10."""
-
-    def __init__(self, action_mask=[1, 1, 1, 1, 1, 1], random=False):
-        """Init."""
-        self.action_mask = action_mask
-        self.random = random
-        self.rnd = rnd
-        self.rnd.seed(0)
-        self.action_period = 10
-        self.action_cnt = self.action_period
-
-        self.human_agent_action = np.array([[0., 0.], [0., 0.]], dtype=np.float32)  # noop
-        self.button = np.array([0], dtype=np.int32)
-        pygame.init()
-        width, height = 640, 480
-        screen = pygame.display.set_mode((width, height))
-        self.t = None
-
-    def _get_human_action(self):
+    def _get_keyboard_action(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -138,25 +93,46 @@ class UR10KeyboardActor(object):
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
-            self.human_agent_action[0, 0] = 1.0
+            self.human_agent_action[0] = 1.0
         elif keys[pygame.K_s]:
-            self.human_agent_action[0, 0] = -1.0
+            self.human_agent_action[0] = -1.0
         else:
-            self.human_agent_action[0, 0] = 0.0
+            self.human_agent_action[0] = 0.0
             
         if keys[pygame.K_a]:
-            self.human_agent_action[0, 1] = -1.0
+            self.human_agent_action[1] = -1.0
         elif keys[pygame.K_d]:
-            self.human_agent_action[0, 1] = 1.0
+            self.human_agent_action[1] = 1.0
         else:
-            self.human_agent_action[0, 1] = 0.0
+            self.human_agent_action[1] = 0.0
             
         if keys[pygame.K_e]:
-            self.human_agent_action[1, 0] = 1.0
+            self.human_agent_action[2] = 1.0
         elif keys[pygame.K_c]:
-            self.human_agent_action[1, 0] = -1.0
+            self.human_agent_action[2] = -1.0
         else:
-            self.human_agent_action[1, 0] = 0.0
+            self.human_agent_action[2] = 0.0
+            
+        if keys[pygame.K_f]:
+            self.human_agent_action[3] = 1.0
+        elif keys[pygame.K_h]:
+            self.human_agent_action[3] = -1.0
+        else:
+            self.human_agent_action[3] = 0.0
+            
+        if keys[pygame.K_t]:
+            self.human_agent_action[4] = 1.0
+        elif keys[pygame.K_g]:
+            self.human_agent_action[4] = -1.0
+        else:
+            self.human_agent_action[4] = 0.0
+            
+        if keys[pygame.K_r]:
+            self.human_agent_action[5] = 1.0
+        elif keys[pygame.K_y]:
+            self.human_agent_action[5] = -1.0
+        else:
+            self.human_agent_action[5] = 0.0
             
         if keys[pygame.K_1]:
             self.button[0] = 6.0 # init mode
@@ -164,23 +140,51 @@ class UR10KeyboardActor(object):
             self.button[0] = 7.0 # teleop mode
         else:
             self.button[0] = -1
-        
-        if abs(self.human_agent_action[0, 0]) < 0.01:
-            self.human_agent_action[0, 0] = 0.0
-        if abs(self.human_agent_action[1, 0]) < 0.01:
-            self.human_agent_action[1, 0] = 0.0
-        action = [self.human_agent_action[0][0], 
-                    self.human_agent_action[0][1], 
-                    self.human_agent_action[1][0], 
-                    0, 
-                    0, 
-                    self.human_agent_action[1][1]]
+            
+        action = [self.human_agent_action[0] * self.action_mask[0] * self.action_scale, 
+                  self.human_agent_action[1] * self.action_mask[1] * self.action_scale, 
+                  self.human_agent_action[2] * self.action_mask[2] * self.action_scale, 
+                  self.human_agent_action[3] * self.action_mask[3] * self.action_scale,
+                  self.human_agent_action[4] * self.action_mask[4] * self.action_scale, 
+                  self.human_agent_action[5] * self.action_mask[5] * self.action_scale]
         return np.asarray(action)
+
+    def __call__(self, ob):
+        """Act."""
+        if self.input_type == 'joystick':
+            action = self._get_joystick_action()
+        elif self.input_type == 'keyboard':
+            action = self._get_keyboard_action()
+        self.t = time.time()
+        # Prevent collision with table
+        if ob[0][2] < 0.025:
+            if action[2] < 0:
+                action[2] = 0
+        return action
+
+    def reset(self):
+        self.human_agent_action[:] = 0.
+
+@gin.configurable
+class UR10RandomActor(object):
+    """Joystick Controller for UR10."""
+
+    def __init__(self, action_mask=[1, 1, 1, 1, 1, 1]):
+        """Init."""
+        self.action_mask = action_mask
+        self.rnd = rnd
+        self.rnd.seed(0)
+        self.action_period = 10
+        self.action_cnt = self.action_period
+
+        self.human_agent_action = np.array([[0., 0.], [0., 0.]], dtype=np.float32)  # noop
+        self.button = np.array([0], dtype=np.int32)
+        self.t = None
 
     def _get_random_action(self):
         self.action_cnt += 1
         if self.action_cnt > self.action_period:
-            self.action = [self.rnd.choice([-1, 0, 1])*self.action_mask[0], 
+            self.action = [ self.rnd.choice([-1, 0, 1])*self.action_mask[0], 
                             self.rnd.choice([-1, 0, 1])*self.action_mask[1], 
                             self.rnd.choice([-1, 0, 1])*self.action_mask[2], 
                             self.rnd.choice([-1, 0, 1])*self.action_mask[3], 
@@ -193,10 +197,7 @@ class UR10KeyboardActor(object):
 
     def __call__(self, ob):
         """Act."""
-        if self.random:
-            action = self._get_random_action()
-        else:
-            action = self._get_human_action()
+        action = self._get_random_action()
         self.t = time.time()
         # Prevent collision with table
         if ob[0][2] < 0.025:
@@ -216,7 +217,7 @@ if __name__ == '__main__':
     env = gym.make("ur10_env:ur10-v0")
     #env = ensure_vec_env(env)
 
-    actor = UR10JoystickActor(random=True)
+    actor = UR10RandomActor()
 
     for _ in range(10):
         ob = env.reset()

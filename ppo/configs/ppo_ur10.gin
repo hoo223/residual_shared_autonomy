@@ -40,22 +40,18 @@ ConstrainedResidualPPO.max_grad_norm = 0.5
 ConstrainedResidualPPO.ent_coef = 0.01
 ConstrainedResidualPPO.vf_coef = 0.5
 ConstrainedResidualPPO.gpu = True
-ConstrainedResidualPPO.base_actor_cls = @UR10KeyboardActor #@UR10JoystickActor #@UR10RandomActor # rsa/base_actors.py 
+ConstrainedResidualPPO.base_actor_cls = @UR10RandomActor # ur10_actors.py 
 #ConstrainedResidualPPO.wrapper_fn = @lunar_lander_fuel_wrapper #v
+
+UR10RandomActor.action_mask = [1,0,0,0,0,0]
 
 #BCMultiActor.logdir = "./models/behavioral_cloning_agents_lunar" #v
 #BCMultiActor.device = "cuda:0"
 #BCMultiActor.switch_prob = 0.001
 
-UR10JoystickActor.random = True
-UR10JoystickActor.action_mask = [1,0,0,0,0,0]
-#UR10JoystickActor.space_type = "task" # "task", "joint"
-
-
 #BCNet.ob_shape = 9
 #BCNet.action_shape = 2
 #BCNet.nunits = 128
-
 
 Checkpointer.ckpt_period = 10000 #100000
 
