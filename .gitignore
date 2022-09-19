@@ -5,3 +5,5 @@ imitation_learning/__pycache__
 __init__.pyc
 
 *.pyc
+
+ppo/logs/tb/
