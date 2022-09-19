@@ -22,11 +22,14 @@ class LunarLanderJoystickActor(object):
         pygame.joystick.init()
         joysticks = [pygame.joystick.Joystick(x)
                      for x in range(pygame.joystick.get_count())]
-        # if len(joysticks) != 1:
-        #     raise ValueError("There must be exactly 1 joystick connected."
-        #                      f"Found {len(joysticks)}")
-        # self.joy = joysticks[0]
-        # self.joy.init()
+        try:
+            if len(joysticks) != 1:
+                raise ValueError("There must be exactly 1 joystick connected."
+                                f"Found {len(joysticks)}")
+            self.joy = joysticks[0]
+            self.joy.init()
+        except:
+            print("No joystick")
         pygame.init()
         self.t = None
         self.fps = fps
