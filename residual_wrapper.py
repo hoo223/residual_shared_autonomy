@@ -39,12 +39,9 @@ class ResidualWrapper(VecEnvWrapper):
     def step(self, action): # from rollout_data_collection.py - rollout_step
         """Step."""
         print("residual step - human_action", self._action)
-        print("residual step - agent_action", action[0][1])
-        #r_a = abs(action[0][1])
-        #print(r_a)
+        print("residual step - agent_action", action)
         action = self._add_actions(np.asarray(action), self._action)
         ob, rs, dones, infos = self.venv.step(action)
-        #rs -= r_a*100
         for i, info in enumerate(infos):
             info['action'] = action[i]
             info['assistant_action'] = np.asarray(action)[i]

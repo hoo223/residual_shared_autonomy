@@ -1,11 +1,10 @@
 """Render trained agents."""
 import dl
 import argparse
-from residual_shared_autonomy.ur10_actors import UR10JoystickActor
+from residual_shared_autonomy.ur10_actors import UR10HumanActor
 from residual_shared_autonomy.ppo import ConstrainedResidualPPO
 from residual_shared_autonomy.lunar_lander import LunarLanderJoystickActor
 from residual_shared_autonomy.drone_sim import DroneJoystickActor, joystick_agent
-#from residual_shared_autonomy.ur10.joystick_agent import UR10JoystickActor
 import os
 
 if __name__ == '__main__':
@@ -13,7 +12,7 @@ if __name__ == '__main__':
     parser.add_argument('logdir', type=str, help='logdir')
     parser.add_argument('--drone', action='store_true', help='conrol drone env')
     parser.add_argument('--reacher', action='store_true', help='conrol luanr reacher env')
-    parser.add_argument('--ur10', action='store_true', help='conrol luanr reacher env')
+    parser.add_argument('--ur10', action='store_true', help='conrol ur10 env')
     args = parser.parse_args()
 
     if args.drone:
@@ -31,7 +30,7 @@ if __name__ == '__main__':
         dl.load_config(os.path.join(args.logdir, 'config.gin'),
                        ['make_env.env_id="ur10_env:ur10-v0"'])
         trainer = ConstrainedResidualPPO(args.logdir, nenv=1,
-                                         base_actor_cls=UR10JoystickActor)
+                                         base_actor_cls=UR10HumanActor)
     else:
         dl.load_config(os.path.join(args.logdir, 'config.gin'),
                        ['make_env.env_id="LunarLanderRandomContinuous-v2"'])

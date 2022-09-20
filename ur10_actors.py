@@ -1,8 +1,9 @@
-#!/usr/bin/python
+#!/root/anaconda3/bin/python
 # -*- coding: utf8 -*- 
 
 """Base actors on which residuals are learned."""
 import numpy as np
+import torch
 import random as rnd
 import time, pygame
 import gin
@@ -20,13 +21,14 @@ LEFT_SIDE_AXIS = 0
 class UR10HumanActor(object):
     """Joystick Controller for UR10."""
 
-    def __init__(self, action_mask=[1, 1, 1, 1, 1, 1], input_type='joystick'):
+    def __init__(self, env, action_mask=[1, 1, 1, 1, 1, 1], input_type='joystick'):
         """Init."""
         self.action_mask = action_mask
         self.action_scale = 2.0
         self.input_type = input_type
         self.human_agent_action = np.zeros(6)
         self.button = np.zeros(1)
+        self.batch_size = 1 # num_envs
         
         if self.input_type == 'joystick':
             pygame.joystick.init()
@@ -73,13 +75,9 @@ class UR10HumanActor(object):
                 self.button[0] = -1
                 self.human_agent_action[3] = self.human_agent_action[4] = 0
             
-        action = [self.human_agent_action[0] * self.action_mask[0] * self.action_scale, 
-                  self.human_agent_action[1] * self.action_mask[1] * self.action_scale, 
-                  self.human_agent_action[2] * self.action_mask[2] * self.action_scale, 
-                  self.human_agent_action[3] * self.action_mask[3] * self.action_scale,
-                  self.human_agent_action[4] * self.action_mask[4] * self.action_scale, 
-                  self.human_agent_action[5] * self.action_mask[5] * self.action_scale]
-        return np.asarray(action)
+        action = [self.human_agent_action[i] * self.action_mask[i] * self.action_scale for i in range(1)]
+        self.action = [action for _ in range(self.batch_size)]
+        return self.action
     
     def _get_keyboard_action(self):
         for event in pygame.event.get():
@@ -141,13 +139,9 @@ class UR10HumanActor(object):
         else:
             self.button[0] = -1
             
-        action = [self.human_agent_action[0] * self.action_mask[0] * self.action_scale, 
-                  self.human_agent_action[1] * self.action_mask[1] * self.action_scale, 
-                  self.human_agent_action[2] * self.action_mask[2] * self.action_scale, 
-                  self.human_agent_action[3] * self.action_mask[3] * self.action_scale,
-                  self.human_agent_action[4] * self.action_mask[4] * self.action_scale, 
-                  self.human_agent_action[5] * self.action_mask[5] * self.action_scale]
-        return np.asarray(action)
+        action = [self.human_agent_action[i] * self.action_mask[i] * self.action_scale for i in range(1)]
+        self.action = [action for _ in range(self.batch_size)]
+        return self.action
 
     def __call__(self, ob):
         """Act."""
@@ -160,7 +154,7 @@ class UR10HumanActor(object):
         if ob[0][2] < 0.025:
             if action[2] < 0:
                 action[2] = 0
-        return action
+        return np.asarray(action)
 
     def reset(self):
         self.human_agent_action[:] = 0.
@@ -169,31 +163,23 @@ class UR10HumanActor(object):
 class UR10RandomActor(object):
     """Joystick Controller for UR10."""
 
-    def __init__(self, action_mask=[1, 1, 1, 1, 1, 1]):
+    def __init__(self, env, action_mask=[1, 1, 1, 1, 1, 1]):
         """Init."""
         self.action_mask = action_mask
         self.rnd = rnd
         self.rnd.seed(0)
         self.action_period = 10
         self.action_cnt = self.action_period
-
-        self.human_agent_action = np.array([[0., 0.], [0., 0.]], dtype=np.float32)  # noop
-        self.button = np.array([0], dtype=np.int32)
-        self.t = None
+        self.batch_size = 1 # num_envs
 
     def _get_random_action(self):
         self.action_cnt += 1
         if self.action_cnt > self.action_period:
-            self.action = [ self.rnd.choice([-1, 0, 1])*self.action_mask[0], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[1], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[2], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[3], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[4], 
-                            self.rnd.choice([-1, 0, 1])*self.action_mask[5]]
+            action = [self.rnd.choice([-1, 0, 1])*self.action_mask[i] for i in range(1)]
+            self.action = [action for _ in range(self.batch_size)]
             self.action_cnt = 0
             self.action_period = rnd.randrange(5,101)
-            
-        return np.asarray(self.action)
+        return self.action
 
     def __call__(self, ob):
         """Act."""
@@ -203,10 +189,10 @@ class UR10RandomActor(object):
         if ob[0][2] < 0.025:
             if action[2] < 0:
                 action[2] = 0
-        return action
+        return np.asarray(action)
 
     def reset(self):
-        self.human_agent_action[:] = 0.
+        pass
 
 
 if __name__ == '__main__':
