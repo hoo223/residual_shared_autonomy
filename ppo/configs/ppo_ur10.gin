@@ -15,10 +15,10 @@ optim.Adam.lr = 0.001
 optim.Adam.betas = (0.9, 0.999)
 optim.Adam.eps = 1e-5
 
-ConstrainedResidualPPO.policy_training_start = 1000 #100000
-ConstrainedResidualPPO.lambda_training_start = 2000 #2000000
-ConstrainedResidualPPO.lambda_lr = 0.1 #0.003
-ConstrainedResidualPPO.lambda_init = 20
+ConstrainedResidualPPO.policy_training_start = 10000 #100000
+ConstrainedResidualPPO.lambda_training_start = 20000 #2000000
+ConstrainedResidualPPO.lambda_lr = 0.1
+ConstrainedResidualPPO.lambda_init = 1
 ConstrainedResidualPPO.lr_decay_rate = 0.31622776601
 ConstrainedResidualPPO.lr_decay_freq = 20000000
 ConstrainedResidualPPO.l2_reg = False
@@ -40,10 +40,10 @@ ConstrainedResidualPPO.max_grad_norm = 0.5
 ConstrainedResidualPPO.ent_coef = 0.01
 ConstrainedResidualPPO.vf_coef = 0.5
 ConstrainedResidualPPO.gpu = True
-ConstrainedResidualPPO.base_actor_cls = @UR10RandomActor # ur10_actors.py 
+ConstrainedResidualPPO.base_actor_cls = @UR10RandomActor #@UR10HumanActor # ur10_actors.py 
 #ConstrainedResidualPPO.wrapper_fn = @lunar_lander_fuel_wrapper #v
 
-UR10RandomActor.action_mask = [1,0,0,0,0,0]
+UR10RandomActor.action_mask = [1, 0, 0, 0, 0, 0]
 
 #BCMultiActor.logdir = "./models/behavioral_cloning_agents_lunar" #v
 #BCMultiActor.device = "cuda:0"
