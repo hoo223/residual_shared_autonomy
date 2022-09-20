@@ -24,7 +24,7 @@ class UR10HumanActor(object):
     def __init__(self, env, action_mask=[1, 1, 1, 1, 1, 1], input_type='joystick'):
         """Init."""
         self.action_mask = action_mask
-        self.action_scale = 2.0
+        self.action_scale = 1.0
         self.input_type = input_type
         self.human_agent_action = np.zeros(6)
         self.button = np.zeros(1)
