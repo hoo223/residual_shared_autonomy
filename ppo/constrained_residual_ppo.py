@@ -237,8 +237,13 @@ class ConstrainedResidualPPO(Algorithm):
         if self.t < max(self.policy_training_start, self.lambda_training_start): # lambda 훈련 시작 전까지는 
             loss['lambda'] = torch.Tensor([0.0]).to(self.device) # lambda loss를 0으로 -> lambda 값 고정
         else:
+            print("compute lambda loss!")
             neps = (1.0 - batch['mask']).sum()
-            loss['lambda'] = (lambda_ * (batch['reward'].sum() - self.reward_threshold * neps) / batch['reward'].size()[0])
+            print("neps: ", neps)
+            print("lambda: ", lambda_)
+            print(batch['reward'])
+            loss['lambda'] = (lambda_ * (batch['reward'].sum() - self.reward_threshold) / batch['reward'].size()[0])
+            print(loss['lambda'])
         if self.t >= self.policy_training_start:
             loss['pi'] = (reg_loss + lambda_ * loss['pi']) / (1. + lambda_)
         loss['total'] = (loss['pi'] + self.vf_coef * vf_loss

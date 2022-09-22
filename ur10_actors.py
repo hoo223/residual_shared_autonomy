@@ -74,7 +74,7 @@ class UR10HumanActor(object):
             else: # button clear
                 self.button[0] = -1
                 self.human_agent_action[3] = self.human_agent_action[4] = 0
-            
+        #self.human_agent_action[0] = -1
         action = [self.human_agent_action[i] * self.action_mask[i] * self.action_scale for i in range(1)]
         self.action = [action for _ in range(self.batch_size)]
         return self.action
@@ -165,6 +165,7 @@ class UR10RandomActor(object):
 
     def __init__(self, env, action_mask=[1, 1, 1, 1, 1, 1]):
         """Init."""
+        self.env = env
         self.action_mask = action_mask
         self.rnd = rnd
         self.rnd.seed(0)
@@ -177,6 +178,7 @@ class UR10RandomActor(object):
         if self.action_cnt > self.action_period:
             action = [self.rnd.choice([-1, 0, 1])*self.action_mask[i] for i in range(1)]
             self.action = [action for _ in range(self.batch_size)]
+            #self.action = [self.env.action_space.sample() for _ in range(self.batch_size)]
             self.action_cnt = 0
             self.action_period = rnd.randrange(5,101)
         return self.action

@@ -11,7 +11,7 @@ if __name__ == '__main__':
     prefix = 'unity'
     env = gym.make("ur10_env:ur10-v0")
     env = ensure_vec_env(env)
-    #actor = UR10RandomActor(action_mask=[1, 0, 0, 0, 0, 0])
+    #actor = UR10RandomActor(env, action_mask=[1, 0, 0, 0, 0, 0])
     actor = UR10HumanActor(input_type='joystick')
     
     for _ in range(5):
